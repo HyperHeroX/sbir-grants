@@ -117,6 +117,58 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["keyword"]
             }
+        ),
+        Tool(
+            name="start_proposal_generator",
+            description="開始互動式計畫書生成器，載入問題並初始化狀態",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "phase": {
+                        "type": "string",
+                        "description": "計畫階段",
+                        "enum": ["phase1", "phase2"],
+                        "default": "phase1"
+                    }
+                },
+                "required": []
+            }
+        ),
+        Tool(
+            name="save_answer",
+            description="保存問答答案到狀態檔案",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "question_id": {
+                        "type": "string",
+                        "description": "問題 ID"
+                    },
+                    "answer": {
+                        "type": "string",
+                        "description": "用戶的答案"
+                    }
+                },
+                "required": ["question_id", "answer"]
+            }
+        ),
+        Tool(
+            name="get_progress",
+            description="取得計畫書生成進度",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        ),
+        Tool(
+            name="generate_proposal",
+            description="根據已回答的問題生成完整計畫書",
+            inputSchema={
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
         )
     ]
 
@@ -143,6 +195,14 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         )
     elif name == "search_moea_website":
         return await search_moea_website(arguments["keyword"])
+    elif name == "start_proposal_generator":
+        return await start_proposal_generator(arguments.get("phase", "phase1"))
+    elif name == "save_answer":
+        return await save_answer(arguments["question_id"], arguments["answer"])
+    elif name == "get_progress":
+        return await get_progress()
+    elif name == "generate_proposal":
+        return await generate_proposal()
     else:
         raise ValueError(f"Unknown tool: {name}")
 
