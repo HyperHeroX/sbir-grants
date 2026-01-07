@@ -2,7 +2,7 @@
 chcp 65001 >nul
 setlocal enabledelayedexpansion
 
-REM SBIR Skill 自動安裝程式 (Enhanced v4 - Final)
+REM SBIR Skill 自動安裝程式 (Final v5)
 echo ==========================================
 echo    SBIR Skill 自動安裝程式
 echo ==========================================
@@ -52,7 +52,6 @@ if not exist "venv" (
     )
 )
 
-REM 使用絕對路徑執行 pip - 分開檢查每個命令
 echo 正在升級 pip...
 venv\Scripts\python.exe -m pip install --upgrade pip --quiet
 if !errorlevel! neq 0 (
@@ -76,11 +75,8 @@ echo.
 REM 步驟 3: 設定 Claude Desktop
 echo 步驟 3/4: 設定 Claude Desktop...
 
-REM 取得腳本所在目錄的絕對路徑
 set "PROJECT_PATH=%~dp0"
-REM 移除結尾反斜線
 set "PROJECT_PATH=!PROJECT_PATH:~0,-1!"
-REM 轉換為正斜線（JSON 需要）
 set "PROJECT_PATH_JSON=!PROJECT_PATH:\=/!"
 
 set "PYTHON_EXE=!PROJECT_PATH_JSON!/venv/Scripts/python.exe"
@@ -88,50 +84,17 @@ set "SERVER_SCRIPT=!PROJECT_PATH_JSON!/mcp-server/server.py"
 
 set "CONFIG_DIR=%APPDATA%\Claude"
 set "CONFIG_FILE=%CONFIG_DIR%\claude_desktop_config.json"
-set "CONFIG_FILE_JSON=!CONFIG_FILE:\=/!"
 
-REM 創建目錄（如果不存在）
 if not exist "!CONFIG_DIR!" mkdir "!CONFIG_DIR!"
 
-REM 如果設定檔已存在，先備份
 if exist "!CONFIG_FILE!" (
     copy /y "!CONFIG_FILE!" "!CONFIG_FILE!.bak" >nul
     echo [i] 已備份現有設定至 claude_desktop_config.json.bak
 )
 
-REM 使用 PowerShell 進行 JSON 合併（修正版）
+REM 使用專案內的 Python 腳本更新設定（最可靠）
 echo 正在更新設定檔...
-
-powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$configPath = '!CONFIG_FILE_JSON!';" ^
-  "$pythonExe = '!PYTHON_EXE!';" ^
-  "$serverScript = '!SERVER_SCRIPT!';" ^
-  "try {" ^
-  "  if (Test-Path $configPath) {" ^
-  "    $content = Get-Content $configPath -Raw -Encoding UTF8;" ^
-  "    if ([string]::IsNullOrWhiteSpace($content)) {" ^
-  "      $config = [PSCustomObject]@{ mcpServers = [PSCustomObject]@{} }" ^
-  "    } else {" ^
-  "      $config = $content | ConvertFrom-Json" ^
-  "    }" ^
-  "  } else {" ^
-  "    $config = [PSCustomObject]@{ mcpServers = [PSCustomObject]@{} }" ^
-  "  };" ^
-  "  if ($null -eq $config.mcpServers) {" ^
-  "    $config | Add-Member -MemberType NoteProperty -Name 'mcpServers' -Value ([PSCustomObject]@{}) -Force" ^
-  "  };" ^
-  "  $newServer = [PSCustomObject]@{ command = $pythonExe; args = @($serverScript) };" ^
-  "  if ($config.mcpServers -is [System.Management.Automation.PSCustomObject]) {" ^
-  "    $config.mcpServers | Add-Member -MemberType NoteProperty -Name 'sbir-data' -Value $newServer -Force" ^
-  "  } else {" ^
-  "    $config | Add-Member -MemberType NoteProperty -Name 'mcpServers' -Value ([PSCustomObject]@{ 'sbir-data' = $newServer }) -Force" ^
-  "  };" ^
-  "  $config | ConvertTo-Json -Depth 10 | Set-Content $configPath -Encoding UTF8;" ^
-  "  exit 0" ^
-  "} catch {" ^
-  "  Write-Host 'Error:' $_.Exception.Message;" ^
-  "  exit 1" ^
-  "}"
+venv\Scripts\python.exe mcp-server\update_config.py "!CONFIG_FILE!" "!PYTHON_EXE!" "!SERVER_SCRIPT!"
 
 if !errorlevel! neq 0 (
     echo [X] 設定檔更新失敗
