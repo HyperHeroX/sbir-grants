@@ -1,403 +1,190 @@
-# 📦 安裝指南
+# 📦 安裝指南（超級簡單版）
 
-> 如何安裝和配置 SBIR Skill，讓 Claude 成為您的 SBIR 申請助手
-
----
-
-## 📋 系統需求
-
-### 必要條件
-
-- ✅ **Claude Desktop**（最新版本）
-- ✅ **macOS** / Windows / Linux
-- ✅ **Python 3.10+**（用於 MCP Server）
-- ✅ **uv** 或 **pip**（Python 套件管理工具）
-
-### 可選條件
-
-- 🔧 **Git**（如果要從 GitHub clone）
+> 這份指南是寫給「完全不懂電腦」的人看的。只要照著做，一定能成功！
 
 ---
 
-## 🚀 安裝步驟
+## 🎯 開始之前
 
-### 方法 A：從 GitHub 安裝（推薦）
+**您需要**：
+- ✅ 一台電腦（Mac 或 Windows）
+- ✅ 已經安裝 Claude Desktop（如果還沒有，請先[下載安裝](https://claude.ai/download)）
+- ✅ 網路連線
 
-#### Step 1: Clone 專案
-
-```bash
-cd ~/Documents
-git clone https://github.com/backtrue/sbir-grants.git
-cd sbir-grants
-```
-
-#### Step 2: 安裝 uv（如果還沒安裝）
-
-**檢查是否已安裝**：
-```bash
-uv --version
-```
-
-**如果出現 `command not found`，請安裝 uv**：
-
-**macOS/Linux**:
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-```
-
-**或使用 Homebrew**:
-```bash
-brew install uv
-```
-
-**Windows**:
-```powershell
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-```
-
-**或者跳過 uv，直接使用 pip**（見下方替代方案）
-
-#### Step 3: 安裝 MCP Server 依賴
-
-**選項 A：使用 uv（推薦，更快）**
-```bash
-cd mcp-server
-uv pip install mcp httpx pydantic
-```
-
-**選項 B：使用 pip（如果沒有 uv）**
-```bash
-cd mcp-server
-pip install mcp httpx pydantic
-```
-
-**或者使用 requirements.txt**：
-```bash
-cd mcp-server
-pip install -r requirements.txt
-```
-
-#### Step 4: 配置 Claude Desktop
-
-編輯 Claude Desktop 設定檔：
-
-**macOS**: 
-```bash
-# 如果檔案不存在，會自動創建
-mkdir -p ~/Library/Application\ Support/Claude
-open ~/Library/Application\ Support/Claude/claude_desktop_config.json
-```
-
-**Windows**:
-```
-%APPDATA%\Claude\claude_desktop_config.json
-```
-
-**Linux**:
-```
-~/.config/Claude/claude_desktop_config.json
-```
-
-**加入以下設定**（請修改路徑為您的實際路徑）：
-
-**選項 A：使用 uv（如果您安裝了 uv）**
-```json
-{
-  "mcpServers": {
-    "sbir-data": {
-      "command": "uv",
-      "args": [
-        "--directory",
-        "/Users/YOUR_USERNAME/Documents/sbir-grants/mcp-server",
-        "run",
-        "server.py"
-      ]
-    }
-  }
-}
-```
-
-**選項 B：使用 python（如果沒有 uv）**
-```json
-{
-  "mcpServers": {
-    "sbir-data": {
-      "command": "python",
-      "args": [
-        "/Users/YOUR_USERNAME/Documents/sbir-grants/mcp-server/server.py"
-      ]
-    }
-  }
-}
-```
-
-⚠️ **重要**：
-- 請將 `/Users/YOUR_USERNAME/Documents/sbir-grants` 改成您的實際路徑！
-- macOS 用戶路徑範例：`/Users/backtrue/Documents/sbir-grants`
-- Windows 用戶路徑範例：`C:\\Users\\YourName\\Documents\\sbir-grants`
-
-#### Step 4: 重啟 Claude Desktop
-
-完全關閉並重新開啟 Claude Desktop。
+**不需要**：
+- ❌ 不需要懂程式
+- ❌ 不需要懂終端機
+- ❌ 不需要任何技術背景
 
 ---
 
-### 方法 B：直接下載（不使用 Git）
+## � 步驟 1：下載專案
 
-#### Step 1: 下載專案
+### 方法 A：使用瀏覽器下載（推薦給新手）
 
-1. 前往 https://github.com/backtrue/sbir-grants
-2. 點擊綠色的 "Code" 按鈕
-3. 選擇 "Download ZIP"
-4. 解壓縮到您想要的位置（例如 `~/Documents/sbir-grants`）
+1. **打開網頁**  
+   前往：https://github.com/backtrue/sbir-grants
 
-#### Step 2-4: 同方法 A
+2. **點擊綠色按鈕**  
+   找到頁面上的綠色按鈕，上面寫著「Code」，點擊它
 
----
+3. **選擇下載 ZIP**  
+   在彈出的選單中，點擊「Download ZIP」
 
-## ✅ 驗證安裝
+4. **解壓縮檔案**  
+   - 下載完成後，找到下載的檔案（通常在「下載」資料夾）
+   - 雙擊 ZIP 檔案，會自動解壓縮
+   - 您會看到一個名為「sbir-grants-main」的資料夾
 
-### 檢查 MCP Server 是否正常運作
+5. **移動到合適的位置**  
+   - 把這個資料夾移動到「文件」資料夾
+   - 重新命名為「sbir-grants」（去掉 -main）
 
-在 Claude Desktop 中輸入：
-
-```
-請使用 MCP Server 查詢機械產業的市場數據
-```
-
-**預期結果**：
-- Claude 會呼叫 MCP Server
-- 回傳經濟部統計處的查詢建議
-- 或使用 search_web 查詢相關數據
-
-### 檢查 Skill 知識庫是否可用
-
-在 Claude Desktop 中輸入：
-
-```
-SBIR Phase 1 和 Phase 2 有什麼差別？
-```
-
-**預期結果**：
-- Claude 會參考 `SKILL.md` 回答
-- 提供詳細的階段比較
+✅ **完成！** 您現在有一個資料夾在：
+- Mac: `/Users/您的名字/Documents/sbir-grants`
+- Windows: `C:\Users\您的名字\Documents\sbir-grants`
 
 ---
 
-## 🎯 開始使用
+## 🚀 步驟 2：自動安裝（最簡單的方法）
 
-### 第一次使用：快速測試
+### Mac 用戶
 
-#### 測試 1: 資格確認
+1. **打開資料夾**  
+   找到剛才下載的「sbir-grants」資料夾，雙擊打開
 
-```
-我的公司實收資本額 5000 萬，員工 50 人，可以申請 SBIR 嗎？
-```
+2. **找到安裝程式**  
+   在資料夾中找到一個檔案叫「install-mac.sh」
 
-**Claude 會**：
-- 檢查資格條件
-- 告訴您是否符合
-- 建議下一步
+3. **執行安裝程式**  
+   - 在檔案上按右鍵
+   - 選擇「打開方式」→「終端機」
+   - 如果出現安全警告，點擊「打開」
 
-#### 測試 2: 構想驗證
+4. **等待安裝完成**  
+   - 程式會自動安裝所有需要的東西
+   - 看到「🎉 安裝成功！」就代表完成了
 
-```
-我想做一個 AI 客服系統給中小企業用，這個構想適合申請 SBIR 嗎？
-```
+### Windows 用戶
 
-**Claude 會**：
-- 評估創新性
-- 建議使用構想驗證指南
-- 提供改進建議
+1. **打開資料夾**  
+   找到剛才下載的「sbir-grants」資料夾，雙擊打開
 
-#### 測試 3: 市場數據查詢
+2. **找到安裝程式**  
+   在資料夾中找到一個檔案叫「install-windows.bat」
 
-```
-請幫我找機械產業的市場數據，我要寫問題陳述
-```
+3. **執行安裝程式**  
+   - 雙擊這個檔案
+   - 如果出現安全警告，點擊「仍要執行」
 
-**Claude 會**：
-- 呼叫 MCP Server
-- 使用 search_web 查詢 IEK、MIC
-- 整合多個來源的數據
+4. **等待安裝完成**  
+   - 程式會自動安裝所有需要的東西
+   - 看到「🎉 安裝成功！」就代表完成了
 
 ---
 
-## 📖 使用情境與範例
+## ⚠️ 如果自動安裝失敗
 
-### 情境 1: 我想知道能不能申請
+### 問題 1：找不到 Python
 
-**您問**：
-```
-我想申請 SBIR，但不知道從何開始
-```
+**症狀**：安裝程式說「找不到 Python」
 
-**Claude 會**：
-- 引導您使用 10 分鐘資格檢查
-- 提供 `quick_start/10min_eligibility_check.md` 連結
-- 解釋基本條件
+**解決方法**：
 
----
+1. **下載 Python**  
+   前往：https://www.python.org/downloads/
 
-### 情境 2: 我要寫計畫書的某個章節
+2. **安裝 Python**  
+   - 下載完成後，雙擊安裝檔
+   - **重要**：安裝時勾選「Add Python to PATH」（Windows）
+   - 一直點「下一步」直到安裝完成
 
-**您問**：
-```
-我要寫創新構想這個章節，該怎麼寫？
-```
+3. **重新執行安裝程式**  
+   回到步驟 2，重新執行 install-mac.sh 或 install-windows.bat
 
-**Claude 會**：
-- 提供 `methodology_innovation.md` 方法論
-- 說明創新點拆解框架
-- 提供範例和檢核清單
+### 問題 2：安裝程式無法執行
 
----
+**Mac 用戶**：
+- 打開「終端機」（在「應用程式」→「工具程式」中）
+- 輸入以下指令（複製貼上）：
+  ```
+  cd ~/Documents/sbir-grants
+  bash install-mac.sh
+  ```
 
-### 情境 3: 我需要市場數據
-
-**您問**：
-```
-我要寫資通訊產業的市場分析，需要 TAM/SAM/SOM 數據
-```
-
-**Claude 會**：
-- 使用 MCP Server 查詢經濟部數據
-- 使用 search_web 查詢資策會 MIC
-- 提供計算方法和數據來源
-- 參考 `methodology_market_analysis.md`
+**Windows 用戶**：
+- 在「install-windows.bat」上按右鍵
+- 選擇「以系統管理員身分執行」
 
 ---
 
-### 情境 4: 我寫完了，要檢查
+## ✅ 步驟 3：重啟 Claude Desktop
 
-**您問**：
-```
-我寫完 Phase 1 計畫書了，幫我檢查是否完整
-```
+1. **完全關閉 Claude**  
+   - Mac: 按 Command + Q
+   - Windows: 點擊右上角的 X
 
-**Claude 會**：
-- 使用 `writing_checklist_phase1.md` 檢核
-- 逐項確認是否完整
-- 指出缺少的部分
+2. **重新開啟 Claude**  
+   從應用程式列表中重新打開 Claude Desktop
 
 ---
 
-### 情境 5: 我遇到具體問題
+## � 步驟 4：測試是否成功
 
-**您問**：
-```
-人事費可以超過 60% 嗎？
-```
+1. **在 Claude 中輸入**：
+   ```
+   請使用 MCP Server 查詢機械產業的市場數據
+   ```
 
-**Claude 會**：
-- 查詢 `faq/faq_budget.md`
-- 回答：不可以，≤ 60%
-- 提供解決方案
-
----
-
-## 🎨 進階使用
-
-### 完整工作流程
-
-```
-1. 資格確認
-   「幫我確認 SBIR 申請資格」
-   
-2. 構想驗證
-   「我想做 [您的構想]，幫我驗證可行性」
-   
-3. 逐章撰寫
-   「我要寫問題陳述，請提供方法論」
-   「我要寫創新構想，請提供方法論」
-   ...
-   
-4. 數據查詢
-   「幫我找 [產業] 的市場數據」
-   
-5. 品質檢查
-   「幫我檢查計畫書是否完整」
-   
-6. 送件準備
-   「送件前需要準備什麼文件？」
-```
-
-### 自訂提示詞
-
-您也可以更具體地要求：
-
-```
-請使用 methodology_innovation.md 的框架，
-幫我分析我的創新點，並與競品比較
-```
+2. **看結果**：
+   - ✅ 如果 Claude 開始查詢，並且沒有紅色錯誤訊息 → **成功！**
+   - ❌ 如果出現「Server disconnected」錯誤 → 請看下方疑難排解
 
 ---
 
-## 🔧 疑難排解
+## 🆘 疑難排解
 
-### 問題 1: MCP Server 無法啟動
+### 問題：Claude 說「Server disconnected」
 
-**症狀**：Claude 說找不到 MCP Server
+**可能原因 1：沒有重啟 Claude**
+- 解決：完全關閉 Claude（Command+Q 或關閉視窗），然後重新開啟
 
-**解決方案**：
-1. 檢查 `claude_desktop_config.json` 路徑是否正確
-2. 確認已安裝依賴：`cd mcp-server && uv pip install -e .`
-3. 重啟 Claude Desktop
+**可能原因 2：Python 路徑不對**
+- 解決：重新執行安裝程式
 
-### 問題 2: Claude 沒有使用知識庫
+**可能原因 3：設定檔位置錯誤**
+- 解決：
+  1. 找到設定檔：
+     - Mac: `~/Library/Application Support/Claude/claude_desktop_config.json`
+     - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+  2. 刪除這個檔案
+  3. 重新執行安裝程式
 
-**症狀**：Claude 的回答很一般，沒有參考專案文件
+### 還是不行？
 
-**解決方案**：
-- 明確要求：「請參考 SBIR Skill 的知識庫回答」
-- 或直接指定文件：「請參考 methodology_innovation.md」
-
-### 問題 3: 找不到某個文件
-
-**症狀**：Claude 說找不到某個方法論或 FAQ
-
-**解決方案**：
-- 查看 `README.md` 的專案結構
-- 使用正確的檔案路徑
-- 或直接問：「有哪些方法論可用？」
-
----
-
-## 📚 下一步
-
-### 安裝完成後
-
-1. **閱讀** [`GETTING_STARTED.md`](GETTING_STARTED.md) - 新手使用指南
-2. **瀏覽** [`README.md`](README.md) - 完整專案說明
-3. **開始使用** - 問 Claude 您的第一個 SBIR 問題！
-
-### 推薦閱讀順序
-
-```
-1. INSTALLATION.md（本文件）← 您在這裡
-2. GETTING_STARTED.md（如何使用）
-3. SKILL.md（了解 SBIR）
-4. README.md（完整功能）
-```
-
----
-
-## 🆘 需要協助？
-
-### 安裝問題
-
-- 📖 查看 [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
+**聯絡我們**：
+- 📧 Email: [您的聯絡方式]
 - 📞 SBIR 服務專線：0800-888-968
 
-### 使用問題
+---
 
-- ❓ 查看 [`FAQ.md`](FAQ.md)（81 個常見問題）
-- 📚 查看 [`GETTING_STARTED.md`](GETTING_STARTED.md)
+## � 安裝完成後
+
+**恭喜！您已經成功安裝 SBIR Skill！**
+
+**下一步**：
+1. 閱讀 [`GETTING_STARTED.md`](GETTING_STARTED.md) 學習如何使用
+2. 或直接開始問 Claude 關於 SBIR 的問題！
+
+**常見問題**：
+- 「我可以問 Claude 什麼問題？」→ 看 [`GETTING_STARTED.md`](GETTING_STARTED.md)
+- 「如何寫 SBIR 計畫書？」→ 看 [`GETTING_STARTED.md`](GETTING_STARTED.md)
+- 「遇到問題怎麼辦？」→ 看 [`TROUBLESHOOTING.md`](TROUBLESHOOTING.md)
 
 ---
 
 <div align="center">
 
-**🎉 安裝完成！開始使用 SBIR Skill 吧！**
+**🎉 開始使用 SBIR Skill，讓 AI 協助您申請 SBIR 補助！**
 
 </div>
