@@ -42,6 +42,40 @@ async def list_tools() -> list[Tool]:
     """定義可用的工具"""
     return [
         Tool(
+            name="search_knowledge_base",
+            description="搜尋 SBIR 知識庫中的相關文件。可搜尋方法論、FAQ、檢核清單、案例等。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "query": {
+                        "type": "string",
+                        "description": "搜尋關鍵字，如：創新、市場分析、經費、資格等"
+                    },
+                    "category": {
+                        "type": "string",
+                        "description": "文件類別（可選）",
+                        "enum": ["methodology", "faq", "checklist", "case_study", "template", "all"],
+                        "default": "all"
+                    }
+                },
+                "required": ["query"]
+            }
+        ),
+        Tool(
+            name="read_document",
+            description="讀取 SBIR 知識庫中的特定文件內容",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "file_path": {
+                        "type": "string",
+                        "description": "文件的相對路徑，如：references/methodology_innovation.md"
+                    }
+                },
+                "required": ["file_path"]
+            }
+        ),
+        Tool(
             name="query_moea_statistics",
             description="查詢經濟部統計處總體統計資料庫（官方 API）。可查詢產業產值、出口、就業等數據。",
             inputSchema={
@@ -93,7 +127,14 @@ async def list_tools() -> list[Tool]:
 @app.call_tool()
 async def call_tool(name: str, arguments: Any) -> list[TextContent]:
     """執行工具"""
-    if name == "query_moea_statistics":
+    if name == "search_knowledge_base":
+        return await search_knowledge_base(
+            arguments["query"],
+            arguments.get("category", "all")
+        )
+    elif name == "read_document":
+        return await read_document(arguments["file_path"])
+    elif name == "query_moea_statistics":
         return await query_moea_statistics(
             arguments["industry"],
             arguments["stat_type"],
@@ -104,6 +145,148 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         return await search_moea_website(arguments["keyword"])
     else:
         raise ValueError(f"Unknown tool: {name}")
+
+# ============================================
+# 核心功能：知識庫搜尋與讀取
+# ============================================
+
+import os
+import glob
+
+# 取得專案根目錄（server.py 的上一層）
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+async def search_knowledge_base(query: str, category: str = "all") -> list[TextContent]:
+    """
+    搜尋 SBIR 知識庫中的相關文件
+    """
+    
+    # 定義搜尋目錄
+    search_dirs = {
+        "methodology": "references/methodology_*.md",
+        "faq": "faq/*.md",
+        "checklist": "checklists/*.md",
+        "case_study": "examples/case_studies/*.md",
+        "template": "templates/*.md",
+        "all": "**/*.md"
+    }
+    
+    pattern = search_dirs.get(category, "**/*.md")
+    search_path = os.path.join(PROJECT_ROOT, pattern)
+    
+    # 搜尋檔案
+    files = glob.glob(search_path, recursive=True)
+    
+    # 過濾相關檔案（簡單的關鍵字匹配）
+    query_lower = query.lower()
+    relevant_files = []
+    
+    for file_path in files:
+        # 檢查檔名
+        file_name = os.path.basename(file_path).lower()
+        relative_path = os.path.relpath(file_path, PROJECT_ROOT)
+        
+        # 讀取檔案內容的前幾行來判斷相關性
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read(500)  # 只讀前 500 字元
+                if query_lower in file_name or query_lower in content.lower():
+                    relevant_files.append({
+                        "path": relative_path,
+                        "name": os.path.basename(file_path),
+                        "category": get_category_from_path(relative_path)
+                    })
+        except Exception:
+            continue
+    
+    # 格式化結果
+    if not relevant_files:
+        result = f"""
+## 搜尋結果
+
+找不到與「{query}」相關的文件。
+
+**建議**：
+- 試試其他關鍵字
+- 查看完整文件列表：README.md
+"""
+    else:
+        result = f"""
+## 搜尋結果：找到 {len(relevant_files)} 個相關文件
+
+**搜尋關鍵字**：{query}
+
+"""
+        for i, file_info in enumerate(relevant_files[:10], 1):  # 最多顯示 10 個
+            result += f"{i}. **{file_info['name']}**\n"
+            result += f"   - 類別：{file_info['category']}\n"
+            result += f"   - 路徑：`{file_info['path']}`\n"
+            result += f"   - 使用 `read_document` 工具讀取此文件\n\n"
+        
+        if len(relevant_files) > 10:
+            result += f"\n（還有 {len(relevant_files) - 10} 個相關文件未顯示）\n"
+    
+    return [TextContent(type="text", text=result)]
+
+async def read_document(file_path: str) -> list[TextContent]:
+    """
+    讀取指定的文件內容
+    """
+    
+    full_path = os.path.join(PROJECT_ROOT, file_path)
+    
+    # 安全檢查：確保路徑在專案目錄內
+    if not os.path.abspath(full_path).startswith(PROJECT_ROOT):
+        return [TextContent(
+            type="text",
+            text=f"❌ 錯誤：無法讀取專案目錄外的檔案"
+        )]
+    
+    # 檢查檔案是否存在
+    if not os.path.exists(full_path):
+        return [TextContent(
+            type="text",
+            text=f"❌ 錯誤：找不到檔案 `{file_path}`\n\n請使用 `search_knowledge_base` 工具搜尋正確的檔案路徑。"
+        )]
+    
+    # 讀取檔案
+    try:
+        with open(full_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        result = f"""
+## 📄 {os.path.basename(file_path)}
+
+**路徑**：`{file_path}`
+
+---
+
+{content}
+"""
+        return [TextContent(type="text", text=result)]
+        
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"❌ 讀取檔案失敗：{str(e)}"
+        )]
+
+def get_category_from_path(path: str) -> str:
+    """根據路徑判斷文件類別"""
+    if "methodology" in path:
+        return "方法論"
+    elif "faq" in path:
+        return "常見問題"
+    elif "checklist" in path:
+        return "檢核清單"
+    elif "case_studies" in path:
+        return "案例研究"
+    elif "template" in path:
+        return "範本"
+    elif "quick_start" in path:
+        return "快速啟動"
+    else:
+        return "其他"
 
 # ============================================
 # 核心功能：查詢經濟部統計處 API
