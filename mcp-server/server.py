@@ -191,6 +191,26 @@ async def list_tools() -> list[Tool]:
                 "properties": {},
                 "required": []
             }
+        ),
+        Tool(
+            name="check_proposal",
+            description="檢核 SBIR 計畫書完整度。這是自我檢查工具，用來確認計畫書是否涵蓋所有必要內容，非評審結果預測。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "proposal_content": {
+                        "type": "string",
+                        "description": "計畫書內容（全文或主要章節）"
+                    },
+                    "phase": {
+                        "type": "string",
+                        "description": "計畫階段",
+                        "enum": ["phase1", "phase2"],
+                        "default": "phase1"
+                    }
+                },
+                "required": ["proposal_content"]
+            }
         )
     ]
 
@@ -227,6 +247,11 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         return await generate_proposal()
     elif name == "update_knowledge_base":
         return await update_knowledge_base()
+    elif name == "check_proposal":
+        return await check_proposal(
+            arguments["proposal_content"],
+            arguments.get("phase", "phase1")
+        )
     else:
         raise ValueError(f"Unknown tool: {name}")
 
@@ -620,6 +645,186 @@ async def update_knowledge_base() -> list[TextContent]:
             type="text",
             text=f"❌ **更新失敗**\n\n發生未預期的錯誤：{str(e)}\n\n請手動執行：\n```bash\ncd {PROJECT_ROOT} && git pull\n```"
         )]
+
+# ============================================
+# 計畫書完整度檢核功能
+# ============================================
+
+async def check_proposal(proposal_content: str, phase: str = "phase1") -> list[TextContent]:
+    """
+    檢核 SBIR 計畫書完整度
+    這是「自我檢查工具」，不是「評審結果預測」
+    """
+    
+    # 定義 Phase 1 檢核項目
+    phase1_checks = [
+        {
+            "category": "基本資訊",
+            "items": [
+                {"name": "公司名稱", "keywords": ["公司", "股份有限", "有限公司"]},
+                {"name": "計畫名稱", "keywords": ["計畫名稱", "計畫題目"]},
+                {"name": "計畫期程", "keywords": ["期程", "月", "年"]},
+            ]
+        },
+        {
+            "category": "問題陳述",
+            "items": [
+                {"name": "產業痛點描述", "keywords": ["痛點", "問題", "挑戰", "困難", "需求"]},
+                {"name": "現況說明", "keywords": ["現況", "目前", "現有", "傳統"]},
+                {"name": "問題量化數據", "keywords": ["億", "萬", "%", "比例", "統計"]},
+            ]
+        },
+        {
+            "category": "創新內容",
+            "items": [
+                {"name": "創新點描述", "keywords": ["創新", "突破", "獨創", "首創", "原創"]},
+                {"name": "與現有技術差異", "keywords": ["差異", "不同", "優於", "相較", "比較"]},
+                {"name": "技術優勢說明", "keywords": ["優勢", "優點", "特色", "領先"]},
+            ]
+        },
+        {
+            "category": "市場分析",
+            "items": [
+                {"name": "目標市場描述", "keywords": ["目標市場", "客戶", "TA", "使用者"]},
+                {"name": "市場規模（TAM/SAM/SOM）", "keywords": ["TAM", "SAM", "SOM", "市場規模", "產值"]},
+                {"name": "商業模式", "keywords": ["商業模式", "獲利", "營收", "收費"]},
+            ]
+        },
+        {
+            "category": "技術可行性",
+            "items": [
+                {"name": "技術方案說明", "keywords": ["技術", "方法", "架構", "系統"]},
+                {"name": "前期驗證成果", "keywords": ["驗證", "測試", "實驗", "前期", "雛型"]},
+                {"name": "風險評估", "keywords": ["風險", "挑戰", "困難"]},
+            ]
+        },
+        {
+            "category": "團隊介紹",
+            "items": [
+                {"name": "團隊成員", "keywords": ["團隊", "成員", "人員"]},
+                {"name": "相關經驗", "keywords": ["經驗", "經歷", "背景", "專長"]},
+                {"name": "分工規劃", "keywords": ["分工", "負責", "職責"]},
+            ]
+        },
+        {
+            "category": "執行計畫",
+            "items": [
+                {"name": "工作項目", "keywords": ["工作", "項目", "任務"]},
+                {"name": "時程規劃", "keywords": ["時程", "進度", "甘特", "月"]},
+                {"name": "查核點", "keywords": ["查核", "里程碑", "KPI", "指標"]},
+            ]
+        },
+        {
+            "category": "經費規劃",
+            "items": [
+                {"name": "人事費", "keywords": ["人事費", "薪資", "人力"]},
+                {"name": "材料費/設備費", "keywords": ["材料", "設備", "器材", "耗材"]},
+                {"name": "其他費用", "keywords": ["委託", "差旅", "管理費"]},
+            ]
+        },
+    ]
+    
+    # 執行檢核
+    content_lower = proposal_content.lower()
+    results = []
+    total_items = 0
+    passed_items = 0
+    
+    for category in phase1_checks:
+        category_results = {
+            "name": category["category"],
+            "items": []
+        }
+        
+        for item in category["items"]:
+            total_items += 1
+            # 檢查是否包含關鍵字
+            found = any(keyword in proposal_content for keyword in item["keywords"])
+            if found:
+                passed_items += 1
+                status = "✅"
+            else:
+                status = "❌"
+            
+            category_results["items"].append({
+                "name": item["name"],
+                "status": status,
+                "found": found
+            })
+        
+        results.append(category_results)
+    
+    # 格式化輸出
+    output = f"""# 📋 SBIR 計畫書完整度檢核
+
+> ⚠️ **重要提醒**：這是「自我檢查工具」，用來確認計畫書是否涵蓋必要內容。  
+> 檢核結果 **不代表審查結果預測**，最終通過與否取決於審查委員評估。
+
+---
+
+## 檢核結果摘要
+
+**完整度**：{passed_items}/{total_items} 項目已涵蓋（{int(passed_items/total_items*100)}%）
+
+"""
+    
+    for category in results:
+        category_passed = sum(1 for item in category["items"] if item["found"])
+        category_total = len(category["items"])
+        
+        if category_passed == category_total:
+            category_status = "✅"
+        elif category_passed == 0:
+            category_status = "❌"
+        else:
+            category_status = "⚠️"
+        
+        output += f"### {category_status} {category['name']} ({category_passed}/{category_total})\n\n"
+        
+        for item in category["items"]:
+            output += f"- {item['status']} {item['name']}\n"
+        
+        output += "\n"
+    
+    # 添加建議
+    missing_items = [
+        f"- {item['name']}"
+        for category in results
+        for item in category["items"]
+        if not item["found"]
+    ]
+    
+    if missing_items:
+        output += f"""---
+
+## 💡 建議補強項目
+
+以下項目可能需要補充或加強：
+
+"""
+        for item in missing_items[:10]:  # 最多顯示 10 項
+            output += f"{item}\n"
+        
+        if len(missing_items) > 10:
+            output += f"\n（還有 {len(missing_items) - 10} 項未列出）\n"
+    else:
+        output += """---
+
+## 🎉 恭喜！
+
+您的計畫書涵蓋了所有必要項目。建議進一步優化：
+- 確認各項內容的深度和具體性
+- 補充量化數據和佐證資料
+- 請他人審閱並給予回饋
+"""
+    
+    output += """
+---
+
+📖 需要更多指引？請說「搜尋 [關鍵字]」查詢知識庫
+"""
+    
+    return [TextContent(type="text", text=output)]
 
 # ============================================
 # 主程式入口
