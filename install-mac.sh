@@ -8,10 +8,23 @@ echo "   SBIR Skill 自動安裝程式"
 echo "=========================================="
 echo ""
 
+# 取得腳本所在目錄
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+cd "$SCRIPT_DIR"
+
+echo "📁 工作目錄: $SCRIPT_DIR"
+echo ""
+
 # 檢查是否在正確的目錄
 if [ ! -f "mcp-server/server.py" ]; then
-    echo "❌ 錯誤：請在 sbir-grants 資料夾中執行此腳本"
-    echo "請先下載專案，然後在專案資料夾中執行"
+    echo "❌ 錯誤：找不到 mcp-server/server.py"
+    echo ""
+    echo "請確認："
+    echo "1. 您已經下載完整的專案"
+    echo "2. 專案資料夾名稱是 sbir-grants"
+    echo "3. 資料夾內有 mcp-server 子資料夾"
+    echo ""
+    echo "目前位置: $SCRIPT_DIR"
     exit 1
 fi
 
