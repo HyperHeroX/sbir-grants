@@ -237,6 +237,33 @@ async def list_tools() -> list[Tool]:
                 },
                 "required": ["total_budget"]
             }
+        ),
+        Tool(
+            name="export_proposal_word",
+            description="將計畫書匯出為 Word 檔案（.docx）。支援完整格式，可直接送件。",
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "content": {
+                        "type": "string",
+                        "description": "計畫書的 Markdown 內容"
+                    },
+                    "filename": {
+                        "type": "string",
+                        "description": "檔案名稱（不含副檔名）",
+                        "default": "SBIR_計畫書"
+                    },
+                    "company_name": {
+                        "type": "string",
+                        "description": "公司名稱（用於頁首）"
+                    },
+                    "project_name": {
+                        "type": "string",
+                        "description": "計畫名稱（用於標題頁）"
+                    }
+                },
+                "required": ["content"]
+            }
         )
     ]
 
@@ -283,6 +310,13 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
             arguments["total_budget"],
             arguments.get("phase", "phase1"),
             arguments.get("project_type", "技術研發")
+        )
+    elif name == "export_proposal_word":
+        return await export_proposal_word(
+            arguments["content"],
+            arguments.get("filename", "SBIR_計畫書"),
+            arguments.get("company_name", ""),
+            arguments.get("project_name", "")
         )
     else:
         raise ValueError(f"Unknown tool: {name}")
@@ -817,6 +851,144 @@ async def calculate_budget(total_budget: float, phase: str = "phase1", project_t
 """
     
     return [TextContent(type="text", text=output)]
+
+# ============================================
+# Word 匯出功能
+# ============================================
+
+from docx import Document
+from docx.shared import Pt, Inches, RGBColor
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+import re
+
+async def export_proposal_word(
+    content: str,
+    filename: str = "SBIR_計畫書",
+    company_name: str = "",
+    project_name: str = ""
+) -> list[TextContent]:
+    """
+    將計畫書 Markdown 內容匯出為 Word 檔案
+    """
+    try:
+        # 建立 Word 文件
+        doc = Document()
+        
+        # 設定預設字型
+        style = doc.styles['Normal']
+        style.font.name = '標楷體'
+        style.font.size = Pt(12)
+        
+        # 標題頁
+        if project_name:
+            title = doc.add_paragraph()
+            title.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = title.add_run(project_name)
+            run.font.size = Pt(24)
+            run.font.bold = True
+            doc.add_paragraph()  # 空行
+        
+        if company_name:
+            company = doc.add_paragraph()
+            company.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = company.add_run(company_name)
+            run.font.size = Pt(16)
+            doc.add_paragraph()  # 空行
+        
+        # 分頁
+        if project_name or company_name:
+            doc.add_page_break()
+        
+        # 解析 Markdown 並轉換為 Word
+        lines = content.split('\n')
+        in_code_block = False
+        
+        for line in lines:
+            # 處理程式碼區塊
+            if line.startswith('```'):
+                in_code_block = not in_code_block
+                continue
+            
+            if in_code_block:
+                p = doc.add_paragraph(line)
+                p.style = 'Normal'
+                p.paragraph_format.left_indent = Inches(0.5)
+                continue
+            
+            # 處理標題
+            if line.startswith('# '):
+                p = doc.add_paragraph(line[2:])
+                run = p.runs[0]
+                run.font.size = Pt(18)
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(0, 0, 128)
+            elif line.startswith('## '):
+                p = doc.add_paragraph(line[3:])
+                run = p.runs[0]
+                run.font.size = Pt(16)
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(0, 0, 128)
+            elif line.startswith('### '):
+                p = doc.add_paragraph(line[4:])
+                run = p.runs[0]
+                run.font.size = Pt(14)
+                run.font.bold = True
+            
+            # 處理列表
+            elif line.startswith('- ') or line.startswith('* '):
+                p = doc.add_paragraph(line[2:], style='List Bullet')
+            elif re.match(r'^\d+\. ', line):
+                text = re.sub(r'^\d+\. ', '', line)
+                p = doc.add_paragraph(text, style='List Number')
+            
+            # 處理分隔線
+            elif line.strip() == '---':
+                doc.add_paragraph('_' * 50)
+            
+            # 處理空行
+            elif line.strip() == '':
+                doc.add_paragraph()
+            
+            # 一般段落
+            else:
+                # 處理粗體 **text**
+                if '**' in line:
+                    p = doc.add_paragraph()
+                    parts = re.split(r'(\*\*.*?\*\*)', line)
+                    for part in parts:
+                        if part.startswith('**') and part.endswith('**'):
+                            run = p.add_run(part[2:-2])
+                            run.bold = True
+                        else:
+                            p.add_run(part)
+                else:
+                    doc.add_paragraph(line)
+        
+        # 儲存檔案
+        output_dir = os.path.expanduser("~/Documents")
+        output_path = os.path.join(output_dir, f"{filename}.docx")
+        doc.save(output_path)
+        
+        return [TextContent(
+            type="text",
+            text=f"""✅ **Word 檔案已成功匯出！**
+
+📄 檔案位置：`{output_path}`
+
+您可以：
+1. 開啟檔案檢視內容
+2. 根據需求調整格式
+3. 直接用於 SBIR 申請送件
+
+> 💡 提示：建議開啟後檢查格式，並補充圖表等視覺元素
+"""
+        )]
+        
+    except Exception as e:
+        return [TextContent(
+            type="text",
+            text=f"❌ **匯出失敗**\n\n錯誤訊息：{str(e)}\n\n請確認：\n1. 已安裝 python-docx\n2. 有寫入權限到 ~/Documents"
+        )]
 
 # ============================================
 # 計畫書完整度檢核功能

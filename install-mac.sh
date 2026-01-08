@@ -70,7 +70,7 @@ if ! "$SCRIPT_DIR/venv/bin/python" -m pip install --upgrade pip --quiet; then
     exit 1
 fi
 
-if ! "$SCRIPT_DIR/venv/bin/python" -m pip install mcp httpx pydantic --quiet; then
+if ! "$SCRIPT_DIR/venv/bin/python" -m pip install mcp httpx pydantic python-docx --quiet; then
     echo "❌ 套件安裝失敗"
     echo "請檢查網路連線"
     exit 1

@@ -67,7 +67,7 @@ if !errorlevel! neq 0 (
 )
 
 echo 正在安裝依賴套件...
-venv\Scripts\python.exe -m pip install mcp httpx pydantic --quiet
+venv\Scripts\python.exe -m pip install mcp httpx pydantic python-docx --quiet
 if !errorlevel! neq 0 (
     echo [X] 套件安裝失敗
     echo 請檢查網路連線
