@@ -425,10 +425,10 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
         file_name = os.path.basename(file_path).lower()
         relative_path = os.path.relpath(file_path, PROJECT_ROOT)
         
-        # 讀取檔案內容的前幾行來判斷相關性
+        # 讀取完整檔案內容來判斷相關性
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read(500)  # 只讀前 500 字元
+                content = f.read()  # 讀取完整內容
                 if query_lower in file_name or query_lower in content.lower():
                     relevant_files.append({
                         "path": relative_path,

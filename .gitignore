@@ -22,6 +22,30 @@ Thumbs.db
 # Build outputs
 *.pdf
 
+# Python
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
 # Real SBIR proposals (confidential)
 references/real/
 
@@ -30,5 +54,5 @@ notes/
 drafts/
 personal/
 
-# Real SBIR proposals (confidential) - temporarily disabled for analysis
-# references/real/
+# Temporary scripts (for debugging)
+fix_*.sh
