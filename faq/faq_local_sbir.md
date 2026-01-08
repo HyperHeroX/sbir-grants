@@ -224,9 +224,92 @@
 <details>
 <summary><b>金門縣</b>（點擊展開）</summary>
 
+- **2026 狀態**：📅 待公布
 - **官網**：[金門 SBIR](https://www.kinmensbir.org.tw)
-- **狀態**：有地方型 SBIR
-- **來源**：金門縣政府官網
+- **2025 資料**：有地方型 SBIR
+</details>
+
+<details>
+<summary><b>新竹縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[新竹縣政府產業發展處](https://www.hsinchu.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>基隆市</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[基隆市產業發展處](https://www.klcg.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>苗栗縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[苗栗縣政府工商發展處](https://www.miaoli.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>彰化縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[彰化縣經濟暨綠能發展處](https://economic.chcg.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>南投縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[南投縣政府](https://www.nantou.gov.tw)
+- **2025 資料**：總經費 911.8 萬元
+- **2025 申請**：4/21 - 5/20
+- **加分項目**：ESG、SDGs 納入評分
+- **特色**：鼓勵企業導入永續發展理念
+</details>
+
+<details>
+<summary><b>雲林縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[雲林縣政府](https://www.yunlin.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>嘉義市</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[嘉義市建設處](https://publicworks.chiayi.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>台東縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[台東縣財政及經濟發展處](https://www.taitung.gov.tw/finance)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>澎湖縣</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[澎湖縣政府建設處](https://www.penghu.gov.tw/public)
+- **2025 資料**：往年有辦理地方型 SBIR
+</details>
+
+<details>
+<summary><b>連江縣（馬祖）</b>（點擊展開）</summary>
+
+- **2026 狀態**：📅 待公布
+- **官網**：[連江縣產業發展處](https://www.matsu.gov.tw)
+- **2025 資料**：往年有辦理地方型 SBIR
 </details>
 
 > 📖 **資料來源**：
