@@ -1,3 +1,9 @@
+---
+source_url: https://www.sbir.org.tw/
+source_title: SBIR 經費編列指南
+source_date: 2026-01-01
+---
+
 # 經費編列指南
 
 ## 概述

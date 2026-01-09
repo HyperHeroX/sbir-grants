@@ -1,3 +1,9 @@
+---
+source_url: https://www.sbir.org.tw/
+source_title: 地方型 SBIR 計畫總覽
+source_date: 2026-01-01
+---
+
 # 地方型 SBIR 總覽
 
 > 中央型 SBIR 補助金額高，但競爭激烈。地方型 SBIR 門檻較低，是中小企業的絕佳練兵場。

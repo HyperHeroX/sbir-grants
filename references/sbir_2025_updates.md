@@ -1,3 +1,9 @@
+---
+source_url: https://www.sbir.org.tw/
+source_title: 2026年度 SBIR 計畫重大更新
+source_date: 2026-01-01
+---
+
 # SBIR 2025 年政策更新
 
 > 2025 年起，SBIR 補助金額全面調高，新增專利申請費補助！

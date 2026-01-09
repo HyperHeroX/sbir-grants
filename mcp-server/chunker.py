@@ -132,18 +132,26 @@ def semantic_chunk(
     
     if len(sentences) <= 1:
         # 太短的文件直接作為一個 chunk
+        metadata = {
+            "file": filename,
+            "file_path": file_path,
+            "chunk_index": 0,
+            "total_chunks": 1
+        }
+        # 只加入非 None 的 frontmatter 值
+        if frontmatter.get("source_url"):
+            metadata["source_url"] = frontmatter["source_url"]
+        if frontmatter.get("source_title"):
+            metadata["source_title"] = frontmatter["source_title"]
+        if frontmatter.get("source_date"):
+            # 轉換 date 物件為字串
+            date_val = frontmatter["source_date"]
+            metadata["source_date"] = str(date_val) if date_val else None
+        
         return [{
             "id": f"{file_path}::0",
             "content": content.strip(),
-            "metadata": {
-                "file": filename,
-                "file_path": file_path,
-                "chunk_index": 0,
-                "total_chunks": 1,
-                "source_url": frontmatter.get("source_url"),
-                "source_title": frontmatter.get("source_title"),
-                "source_date": frontmatter.get("source_date")
-            }
+            "metadata": metadata
         }]
     
     # 2. 計算 embeddings
@@ -211,19 +219,27 @@ def semantic_chunk(
         # 提取首行作為摘要（通常是標題）
         first_line = chunk_text.split('\n')[0][:50]
         
+        metadata = {
+            "file": filename,
+            "file_path": file_path,
+            "chunk_index": i,
+            "total_chunks": total_chunks,
+            "preview": first_line
+        }
+        # 只加入非 None 的 frontmatter 值
+        if frontmatter.get("source_url"):
+            metadata["source_url"] = frontmatter["source_url"]
+        if frontmatter.get("source_title"):
+            metadata["source_title"] = frontmatter["source_title"]
+        if frontmatter.get("source_date"):
+            # 轉換 date 物件為字串
+            date_val = frontmatter["source_date"]
+            metadata["source_date"] = str(date_val) if date_val else None
+        
         result.append({
             "id": f"{file_path}::chunk_{i}",
             "content": chunk_text.strip(),
-            "metadata": {
-                "file": filename,
-                "file_path": file_path,
-                "chunk_index": i,
-                "total_chunks": total_chunks,
-                "preview": first_line,
-                "source_url": frontmatter.get("source_url"),
-                "source_title": frontmatter.get("source_title"),
-                "source_date": frontmatter.get("source_date")
-            }
+            "metadata": metadata
         })
     
     return result
