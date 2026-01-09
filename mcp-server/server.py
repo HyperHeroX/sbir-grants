@@ -416,30 +416,54 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
     # 搜尋檔案
     files = glob.glob(search_path, recursive=True)
     
-    # 過濾相關檔案（簡單的關鍵字匹配）
-    query_lower = query.lower()
-    relevant_files = []
+    # 分詞：將查詢拆分為關鍵字（支援空格分隔）
+    keywords = [kw.strip().lower() for kw in query.split() if kw.strip()]
+    
+    # 計算每個檔案的相關性分數
+    scored_files = []
     
     for file_path in files:
-        # 檢查檔名
         file_name = os.path.basename(file_path).lower()
         relative_path = os.path.relpath(file_path, PROJECT_ROOT)
         
-        # 讀取完整檔案內容來判斷相關性
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read()  # 讀取完整內容
-                if query_lower in file_name or query_lower in content.lower():
-                    relevant_files.append({
-                        "path": relative_path,
-                        "name": os.path.basename(file_path),
-                        "category": get_category_from_path(relative_path)
-                    })
+                content = f.read().lower()
+            
+            # 計算相關性分數
+            score = 0
+            matched_keywords = []
+            
+            for keyword in keywords:
+                # 檔名匹配（權重 x3）
+                if keyword in file_name:
+                    score += 3
+                    matched_keywords.append(keyword)
+                # 內容匹配（權重 x1，但計算出現次數）
+                elif keyword in content:
+                    # 計算關鍵字出現次數（最多計 5 次）
+                    count = min(content.count(keyword), 5)
+                    score += count
+                    matched_keywords.append(keyword)
+            
+            # 只有至少匹配一個關鍵字才加入結果
+            if score > 0:
+                scored_files.append({
+                    "path": relative_path,
+                    "name": os.path.basename(file_path),
+                    "category": get_category_from_path(relative_path),
+                    "score": score,
+                    "matched_keywords": len(set(matched_keywords)),  # 匹配的不重複關鍵字數
+                    "total_keywords": len(keywords)
+                })
         except Exception:
             continue
     
+    # 按分數排序（分數高的在前）
+    scored_files.sort(key=lambda x: (x["matched_keywords"], x["score"]), reverse=True)
+    
     # 格式化結果
-    if not relevant_files:
+    if not scored_files:
         result = f"""
 ## 搜尋結果
 
@@ -451,19 +475,21 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
 """
     else:
         result = f"""
-## 搜尋結果：找到 {len(relevant_files)} 個相關文件
+## 搜尋結果：找到 {len(scored_files)} 個相關文件
 
 **搜尋關鍵字**：{query}
 
 """
-        for i, file_info in enumerate(relevant_files[:10], 1):  # 最多顯示 10 個
-            result += f"{i}. **{file_info['name']}**\n"
+        for i, file_info in enumerate(scored_files[:10], 1):  # 最多顯示 10 個
+            # 顯示匹配度
+            match_ratio = f"{file_info['matched_keywords']}/{file_info['total_keywords']}"
+            result += f"{i}. **{file_info['name']}** (匹配: {match_ratio} 關鍵字)\n"
             result += f"   - 類別：{file_info['category']}\n"
             result += f"   - 路徑：`{file_info['path']}`\n"
             result += f"   - 使用 `read_document` 工具讀取此文件\n\n"
         
-        if len(relevant_files) > 10:
-            result += f"\n（還有 {len(relevant_files) - 10} 個相關文件未顯示）\n"
+        if len(scored_files) > 10:
+            result += f"\n（還有 {len(scored_files) - 10} 個相關文件未顯示）\n"
     
     # 檢查是否有新版本（每天一次）
     update_notice = check_for_updates()
