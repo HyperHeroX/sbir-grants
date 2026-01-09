@@ -453,7 +453,7 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
             continue
     
     # ===== 2. 語意搜尋 (RAG) =====
-    semantic_results = {}  # path -> similarity
+    semantic_results = {}  # path -> {similarity, content, metadata}
     semantic_available = False
     
     try:
@@ -466,10 +466,15 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
             results = semantic_search(query, persist_dir, n_results=15)
             
             for result in results:
-                semantic_results[result["id"]] = result["similarity"]
+                semantic_results[result["id"]] = {
+                    "similarity": result["similarity"],
+                    "content": result.get("content", ""),
+                    "metadata": result.get("metadata", {})
+                }
     except Exception as e:
         # 語意搜尋不可用，僅使用關鍵字搜尋
         pass
+
     
     # ===== 3. 混合排序 =====
     KEYWORD_WEIGHT = 0.4
@@ -487,7 +492,8 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
         kw_score = kw_info.get("keyword_score", 0) / max_keyword_score if max_keyword_score > 0 else 0
         
         # 語意分數（已經是 0-1）
-        sem_score = semantic_results.get(path, 0)
+        sem_info = semantic_results.get(path, {})
+        sem_score = sem_info.get("similarity", 0) if isinstance(sem_info, dict) else 0
         
         # 加權總分
         if semantic_available:
@@ -499,9 +505,11 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
         if path in keyword_results:
             info = keyword_results[path].copy()
         else:
+            # 從語意結果取得 metadata
+            sem_metadata = sem_info.get("metadata", {}) if isinstance(sem_info, dict) else {}
             info = {
-                "path": path,
-                "name": os.path.basename(path),
+                "path": sem_metadata.get("file_path", path),
+                "name": sem_metadata.get("file", os.path.basename(path)),
                 "category": get_category_from_path(path),
                 "matched_keywords": 0,
                 "total_keywords": len(keywords)
@@ -509,7 +517,21 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
         
         info["final_score"] = final_score
         info["semantic_score"] = sem_score
+        
+        # 從語意結果取得內容預覽
+        if isinstance(sem_info, dict):
+            content = sem_info.get("content", "")
+            metadata = sem_info.get("metadata", {})
+            
+            if metadata.get("preview"):
+                info["preview"] = metadata.get("preview")
+            
+            if content:
+                # 取前 100 個字符作為內容片段
+                info["content_snippet"] = content[:100].replace('\n', ' ').strip()
+        
         final_scores.append(info)
+
     
     # 按總分排序
     final_scores.sort(key=lambda x: x["final_score"], reverse=True)
@@ -528,7 +550,7 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
     else:
         search_mode = "🔍 混合搜尋（關鍵字 + AI 語意）" if semantic_available else "🔍 關鍵字搜尋"
         result = f"""
-## 搜尋結果：找到 {len(final_scores)} 個相關文件
+## 搜尋結果：找到 {len(final_scores)} 個相關段落
 
 **搜尋模式**：{search_mode}
 **搜尋關鍵字**：{query}
@@ -542,16 +564,28 @@ async def search_knowledge_base(query: str, category: str = "all") -> list[TextC
                 match_ratio = f"{file_info.get('matched_keywords', 0)}/{file_info['total_keywords']}"
                 relevance = f"匹配: {match_ratio} 關鍵字"
             
+            # 檢查是否有 chunk 預覽
+            preview = file_info.get("preview", "")
+            content_snippet = file_info.get("content_snippet", "")
+            
             result += f"{i}. **{file_info['name']}** ({relevance})\n"
+            
+            if preview:
+                result += f"   > 📄 {preview}\n"
+            
+            if content_snippet:
+                result += f"   > 「{content_snippet}」\n"
+            
             result += f"   - 類別：{file_info['category']}\n"
             result += f"   - 路徑：`{file_info['path']}`\n"
             result += f"   - 使用 `read_document` 工具讀取此文件\n\n"
         
         if len(final_scores) > 10:
-            result += f"\n（還有 {len(final_scores) - 10} 個相關文件未顯示）\n"
+            result += f"\n（還有 {len(final_scores) - 10} 個相關段落未顯示）\n"
         
         if not semantic_available:
             result += "\n💡 **提示**：執行 `python mcp-server/build_index.py` 可啟用 AI 語意搜尋，提升搜尋準確度。\n"
+
     
     # 檢查是否有新版本
     update_notice = check_for_updates()

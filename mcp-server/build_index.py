@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-建立向量索引腳本
+建立向量索引腳本（語意分段版）
 
-此腳本會掃描所有 Markdown 文件並建立語意搜尋索引
+此腳本會掃描所有 Markdown 文件，進行語意分段，並建立搜尋索引
 """
 
 import os
@@ -18,6 +18,7 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
 from vector_search import index_documents, get_index_count
+from chunker import chunk_all_documents
 
 # ChromaDB 持久化目錄
 PERSIST_DIR = os.path.join(SCRIPT_DIR, "chroma_db")
@@ -88,21 +89,29 @@ def load_all_documents() -> list:
 def main():
     print("=" * 50)
     print("SBIR 知識庫向量索引建立工具")
+    print("（語意分段版 v2.0）")
     print("=" * 50)
     print()
     
     # 檢查現有索引
     existing_count = get_index_count(PERSIST_DIR)
     if existing_count > 0:
-        print(f"發現現有索引，包含 {existing_count} 個文件")
+        print(f"發現現有索引，包含 {existing_count} 個 chunks")
         response = input("是否重新建立索引？(y/N): ").strip().lower()
         if response != 'y':
             print("取消操作")
             return
         print()
+        
+        # 清除現有索引
+        import shutil
+        if os.path.exists(PERSIST_DIR):
+            shutil.rmtree(PERSIST_DIR)
+            print("已清除現有索引")
+            print()
     
     # 載入文件
-    print("步驟 1/2: 載入知識庫文件...")
+    print("步驟 1/3: 載入知識庫文件...")
     documents = load_all_documents()
     print(f"  找到 {len(documents)} 個 Markdown 文件")
     
@@ -117,21 +126,40 @@ def main():
         print(f"    {cat}: {count} 個")
     print()
     
-    # 建立索引
-    print("步驟 2/2: 建立向量索引（首次執行需下載模型，約 500MB）...")
+    # 語意分段
+    print("步驟 2/3: 語意分段（首次執行需下載模型，約 500MB）...")
     print()
     
     try:
-        index_documents(documents, PERSIST_DIR)
+        chunks = chunk_all_documents(documents)
+        print(f"\n  分段完成！{len(documents)} 個文件 → {len(chunks)} 個語意 chunks")
+        print(f"  平均每文件 {len(chunks) / len(documents):.1f} 個 chunks")
+    except Exception as e:
+        print(f"\n語意分段失敗: {e}")
+        import traceback
+        traceback.print_exc()
+        return 1
+    
+    print()
+    
+    # 建立索引
+    print("步驟 3/3: 建立向量索引...")
+    print()
+    
+    try:
+        index_documents(chunks, PERSIST_DIR)
     except Exception as e:
         print(f"\n建立索引失敗: {e}")
+        import traceback
+        traceback.print_exc()
         return 1
     
     print()
     print("=" * 50)
     print("✅ 索引建立完成！")
     print(f"   索引位置: {PERSIST_DIR}")
-    print(f"   文件數量: {len(documents)}")
+    print(f"   原始文件: {len(documents)} 個")
+    print(f"   語意 chunks: {len(chunks)} 個")
     print("=" * 50)
     
     return 0
@@ -139,3 +167,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main() or 0)
+
